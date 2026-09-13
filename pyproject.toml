@@ -1,3 +1,78 @@
+[project]
+name = "multievolve"
+version = "0.1.0"
+description = "MULTI-evolve: model-guided, universal, targeted installation of multi-mutants"
+readme = "README.md"
+license = "Apache-2.0"
+authors = [
+  { name = "Vincent Q. Tran" },
+  { name = "Matthew Nemeth" },
+  { name = "Brian Hie" },
+]
+requires-python = ">=3.11,<3.12"
+dependencies = [
+  "ankh",
+  "biopython==1.85.*",
+  "biotite==0.41.2",
+  "fair-esm",
+  "fbpca",
+  "geosketch",
+  "gpytorch",
+  "jax-unirep==3.0.0",
+  "joblib",
+  "levenshtein",
+  "matplotlib>=3.10",
+  "numpy==1.26.*",
+  "pandas==2.2.*",
+  "protobuf",
+  "pyyaml",
+  "scikit-learn==1.6.*",
+  "scikit-optimize==0.10.*",
+  "scipy==1.15.*",
+  "seaborn==0.13.*",
+  "streamlit==1.45.*",
+  "torch==2.6.0",
+  "torch-cluster",
+  "torch-geometric",
+  "torch-scatter",
+  "torch-sparse",
+  "torch-spline-conv",
+  "tqdm",
+  "transformers",
+  "wandb==0.19.*",
+]
+
+[project.urls]
+Repository = "https://github.com/SBEE-Lab/MULTI-evolve"
+
+[dependency-groups]
+dev = ["ipykernel"]
+
 [build-system]
-requires = ["setuptools>=64.0"]
-build-backend = "setuptools.build_meta" 
+requires = ["setuptools>=64"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools]
+include-package-data = true
+script-files = [
+  "scripts/p1_train.py",
+  "scripts/p2_propose.py",
+  "scripts/p3_assembly_design.py",
+  "scripts/plm_zeroshot_ensemble.py",
+]
+
+[tool.setuptools.packages.find]
+include = ["multievolve*"]
+
+# Keep the PyG CUDA ABI aligned with the PyPI torch 2.6.0 CUDA 12.4 wheel.
+[[tool.uv.index]]
+name = "pyg"
+url = "https://data.pyg.org/whl/torch-2.6.0+cu124.html"
+format = "flat"
+explicit = true
+
+[tool.uv.sources]
+torch-cluster = { index = "pyg" }
+torch-scatter = { index = "pyg" }
+torch-sparse = { index = "pyg" }
+torch-spline-conv = { index = "pyg" }
