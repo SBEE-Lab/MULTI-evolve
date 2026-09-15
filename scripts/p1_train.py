@@ -58,8 +58,7 @@ def parse_args():
     parser.add_argument(
         '-k',
         '--wandb-key',
-        required=True,
-        help='WandB API key for authentication'
+        help='WandB API key; defaults to WANDB_API_KEY'
     )
     parser.add_argument(
         '-m',
@@ -79,8 +78,11 @@ def main():
     args = parse_args()
 
     try:
-        # Login to WandB
-        wandb.login(key=args.wandb_key)
+        # Avoid exposing environment-provided credentials in process arguments.
+        if args.wandb_key:
+            wandb.login(key=args.wandb_key)
+        else:
+            wandb.login()
     except Exception as e:
         print(f"Error logging into WandB: {e}")
         sys.exit(1)
