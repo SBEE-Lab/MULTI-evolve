@@ -1,0 +1,16 @@
+**
+!.dockerignore
+!Dockerfile
+!LICENSE
+!MANIFEST.in
+!README.md
+!app.py
+!pyproject.toml
+!setup.py
+!uv.lock
+!.streamlit/
+!.streamlit/config.toml
+!multievolve/
+!multievolve/**
+!scripts/
+!scripts/**
