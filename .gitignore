@@ -1,0 +1,30 @@
+# Nix and direnv
+.direnv/
+result
+result-*
+
+# Python environments and build artifacts
+.venv/
+__pycache__/
+*.py[cod]
+*.egg-info/
+build/
+dist/
+
+# Python tool caches and reports
+.coverage
+.coverage.*
+htmlcov/
+.ipynb_checkpoints/
+.mypy_cache/
+.pytest_cache/
+.ruff_cache/
+
+# Application-local state and credentials
+.streamlit/secrets.toml
+wandb/
+
+# Editor and operating system state
+.DS_Store
+.idea/
+.vscode/
