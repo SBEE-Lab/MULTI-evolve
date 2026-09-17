@@ -137,6 +137,16 @@ p3_assembly_design.py \
 
 #### Protein Language Model Zeroshot Ensemble
 
+ESM-IF runs on CUDA when available, otherwise CPU. Set `--esm-if-device cpu` to
+force CPU execution or `--esm-if-device cuda` to require CUDA; an unavailable
+explicit CUDA request fails instead of silently falling back. This option only
+controls ESM-IF, not the sequence-model ensemble. GPU containers still require
+NVIDIA device access. Scoring remains in the model's existing precision; small
+CPU/GPU floating-point differences are expected, not improved model accuracy.
+
+The library functions `zero_shot_esm_if_dms` and `zero_shot_esm_if` expose the same
+policy through `esm_if_device="auto"` (also `"cpu"` and `"cuda"`).
+
 To perform the protein language model zeroshot ensemble approach implemented in MULTI-evolve, use the ```plm_zeroshot_ensemble.py``` script. An example is provided below. The arguments are as follows:
 - ```--wt-file```: Path to the FASTA file for the wildtype protein sequence.
 - ```--pdb-files```: Path to the PDB/CIF structure file. Can be a single file or a comma-separated list of files (e.g. ```model_0.cif,model_1.cif```).
@@ -151,6 +161,8 @@ cd data/example_protein
 plm_zeroshot_ensemble.py \
 --wt-file apex.fasta \
 --pdb-files apex.cif \
+--chain-id A \
+--esm-if-device auto \
 --variants 24 \
 --excluded-positions 1,14,41,112 \
 --normalizing-method aa_substitution_type
