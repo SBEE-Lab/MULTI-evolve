@@ -62,6 +62,13 @@ def parse_args():
         help="Comma-separated list of positions to exclude from mutation",
     )
 
+    parser.add_argument(
+        "--esm-if-device",
+        choices=("auto", "cpu", "cuda"),
+        default="auto",
+        help="ESM-IF device; auto selects CUDA when available, otherwise CPU",
+    )
+
     args = parser.parse_args()
 
     # Process arguments
@@ -99,6 +106,7 @@ def main():
                 pdb_file,
                 chain_id=chain_id,
                 scoring_strategy="wt-marginals",
+                esm_if_device=args.esm_if_device,
             )
         )
 

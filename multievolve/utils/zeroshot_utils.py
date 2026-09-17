@@ -173,11 +173,25 @@ def zero_shot_esm_dms(
     return df_sorted
 
 
+def _resolve_esm_if_device(esm_if_device):
+    """Honor explicit CPU/CUDA requests instead of silently changing devices."""
+    if esm_if_device not in ("auto", "cpu", "cuda"):
+        raise ValueError("esm_if_device must be auto, cpu or cuda")
+    if esm_if_device == "cpu":
+        return torch.device("cpu")
+    if torch.cuda.is_available():
+        return torch.device("cuda:0")
+    if esm_if_device == "cuda":
+        raise RuntimeError("CUDA was requested for ESM-IF but is not available")
+    return torch.device("cpu")
+
+
 def zero_shot_esm_if_dms(
     wt_seq,
     pdb_file,
     chain_id="A",
     scoring_strategy="wt-marginals",
+    esm_if_device="auto",
     **kwargs,
 ):
     """
@@ -188,6 +202,7 @@ def zero_shot_esm_if_dms(
         pdb_file (str): Path to PDB file
         chain_id (str): Chain ID in the PDB file
         scoring_strategy (str): Currently not used, kept for consistency
+        esm_if_device (str): auto selects CUDA when available, else CPU
         **kwargs: Additional arguments
 
     Returns:
@@ -207,8 +222,10 @@ def zero_shot_esm_if_dms(
 
     model_locations = ["esm_if1_gvp4_t16_142M_UR50"]
 
+    device = _resolve_esm_if_device(esm_if_device)
+    print(f"Running ESM-IF on {device}")
     model, alphabet = pretrained.load_model_and_alphabet(model_locations[0])
-    model = model.eval()
+    model = model.eval().to(device)
 
     structure = esm.inverse_folding.util.load_structure(pdb_file, chain_id)
     coords, native_seq = esm.inverse_folding.util.extract_coords_from_structure(
@@ -224,17 +241,17 @@ def zero_shot_esm_if_dms(
             f"Warning: Native sequence from structure ({len(native_seq)} residues) does not match input sequence ({len(wt_seq)} residues)"
         )
 
-    device = next(model.parameters()).device
     batch_converter = CoordBatchConverter(alphabet)
     batch = [(coords, None, wt_seq)]
     coords, confidence, _, tokens, padding_mask = batch_converter(batch, device=device)
 
     prev_output_tokens = tokens[:, :-1].to(device)
-    logits, _ = model.forward(coords, padding_mask, confidence, prev_output_tokens)
+    with torch.inference_mode():
+        logits, _ = model.forward(coords, padding_mask, confidence, prev_output_tokens)
 
     # Average model scores and find scores for the mutations-of-interest.
 
-    scores = logits.detach().numpy()[0]
+    scores = logits.cpu().numpy()[0]
     mutation_score = {}
     for pos in range(len(wt_seq)):
         wt = wt_seq[pos]
@@ -411,6 +428,7 @@ def zero_shot_esm_if(
     sequence,
     pdb_file,
     chain_id,
+    esm_if_device="auto",
     **kwargs,
 ):
     """
@@ -422,6 +440,7 @@ def zero_shot_esm_if(
         sequence (str): Original protein sequence
         pdb_file (str): Path to PDB file
         chain_id (str): Chain ID in the PDB file
+        esm_if_device (str): auto selects CUDA when available, else CPU
         **kwargs: Additional arguments
 
     Returns:
@@ -433,23 +452,25 @@ def zero_shot_esm_if(
 
     # Compute token probs for each model.
 
+    device = _resolve_esm_if_device(esm_if_device)
+    print(f"Running ESM-IF on {device}")
     model, alphabet = pretrained.load_model_and_alphabet(model_locations[0])
-    model = model.eval()
+    model = model.eval().to(device)
 
     structure = esm.inverse_folding.util.load_structure(pdb_file, chain_id)
     coords, _ = esm.inverse_folding.util.extract_coords_from_structure(structure)
 
-    device = next(model.parameters()).device
     batch_converter = CoordBatchConverter(alphabet)
     batch = [(coords, None, sequence)]
     coords, confidence, _, tokens, padding_mask = batch_converter(batch, device=device)
 
     prev_output_tokens = tokens[:, :-1].to(device)
-    logits, _ = model.forward(coords, padding_mask, confidence, prev_output_tokens)
+    with torch.inference_mode():
+        logits, _ = model.forward(coords, padding_mask, confidence, prev_output_tokens)
 
     # Average model scores and find scores for the mutations-of-interest.
 
-    scores = logits.detach().numpy()[0]
+    scores = logits.cpu().numpy()[0]
     mutation_score = {}
     for pos in range(len(sequence)):
         wt = sequence[pos]
