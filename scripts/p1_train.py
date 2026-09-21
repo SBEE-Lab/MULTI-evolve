@@ -18,6 +18,7 @@ p1_train.py \
 
 import wandb
 import argparse
+from multievolve.runtime_paths import configure_cache
 import sys
 import matplotlib
 matplotlib.use('Agg')
@@ -66,6 +67,7 @@ def parse_args():
         required=True,
         help='Training method of the experiment, options include: test or standard'
     )
+    parser.add_argument("--cache-dir", help="Override the package-relative cache root")
     args = parser.parse_args()
     args.wt_files = [f.strip() for f in args.wt_files.split(',')]
     return args
@@ -76,6 +78,7 @@ def main():
 
     # Parse command line arguments
     args = parse_args()
+    configure_cache(args.cache_dir)
 
     try:
         # Avoid exposing environment-provided credentials in process arguments.

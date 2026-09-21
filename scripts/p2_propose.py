@@ -19,6 +19,9 @@ p2_propose.py \
 
 import wandb
 import argparse
+import os
+from pathlib import Path
+from multievolve.runtime_paths import configure_cache
 import pandas as pd
 import numpy as np
 from Bio import SeqIO
@@ -71,9 +74,20 @@ def parse_args():
         help='Name for export files'
     )
 
+    parser.add_argument("--cache-dir", help="Override the package-relative cache root")
+    parser.add_argument("--output-dir", help="Collect CSV exports in this directory")
     args = parser.parse_args()
     args.wt_files = [f.strip() for f in args.wt_files.split(',')]
     return args
+
+
+def export_path(filename, default_dir, output_dir=None):
+    """Keep legacy paths unless an explicit export directory is supplied."""
+    if output_dir is None:
+        return os.path.join(default_dir, filename)
+    directory = Path(output_dir).expanduser().resolve()
+    directory.mkdir(parents=True, exist_ok=True)
+    return str(directory / Path(filename).name)
 
 
 def main():
@@ -82,6 +96,7 @@ def main():
 
     # Parse command line arguments
     args = parse_args()
+    configure_cache(args.cache_dir)
 
     # Define variables from args
     experiment_name = args.experiment_name
@@ -210,7 +225,10 @@ def main():
         mutation_pool=mutation_pool)
     proposer.propose(output_df=False)
     proposer.evaluate_proposals()
-    proposer.save_proposals(f'{experiment_name}_proposals_all')
+    proposal_name = f'{experiment_name}_proposals_all'
+    if args.output_dir is not None:
+        proposal_name = export_path(proposal_name, "", args.output_dir)
+    proposer.save_proposals(proposal_name)
 
     # get top n variants per mutational load
     df = proposer.proposals
@@ -224,8 +242,8 @@ def main():
 
     # Export results
     print('Saving all proposals...')
-    top_df.to_csv(os.path.join(splits[0].file_attrs['dataset_dir'], 'proposers/results', f'{experiment_name}_proposals_top_{top_muts_per_load}.csv'), index=False)
-    top_df[['Mut_string']].to_csv(os.path.join(splits[0].file_attrs['dataset_dir'], f'{export_name}.csv'), index=False,header=None)
+    top_df.to_csv(export_path(f'{experiment_name}_proposals_top_{top_muts_per_load}.csv', os.path.join(splits[0].file_attrs['dataset_dir'], 'proposers/results'), args.output_dir), index=False)
+    top_df[['Mut_string']].to_csv(export_path(f'{export_name}.csv', splits[0].file_attrs['dataset_dir'], args.output_dir), index=False,header=None)
     
     # functions for multichain proteins
 
@@ -309,7 +327,7 @@ def main():
         df_mutations = mutation_map_to_df(dict_mutations)
 
         top_df = pd.merge(top_df, df_mutations, on='Mut_string', how='left')
-        top_df.to_csv(os.path.join(splits[0].file_attrs['dataset_dir'], 'proposers/results', f'{experiment_name}_proposals_top_{top_muts_per_load}.csv'), index=False)
+        top_df.to_csv(export_path(f'{experiment_name}_proposals_top_{top_muts_per_load}.csv', os.path.join(splits[0].file_attrs['dataset_dir'], 'proposers/results'), args.output_dir), index=False)
         
 
         for col in df_mutations.columns[1:]:
@@ -318,7 +336,7 @@ def main():
                 mutations.remove('')
             #convert mutations to a dataframe for csv export
             df_mutations_col = pd.DataFrame(mutations, columns=[col])
-            df_mutations_col.to_csv(os.path.join(splits[0].file_attrs['dataset_dir'], f'{export_name}_{col}_mutants.csv'), index=False, header=None)
+            df_mutations_col.to_csv(export_path(f'{export_name}_{col}_mutants.csv', splits[0].file_attrs['dataset_dir'], args.output_dir), index=False, header=None)
 
 
 if __name__ == "__main__":

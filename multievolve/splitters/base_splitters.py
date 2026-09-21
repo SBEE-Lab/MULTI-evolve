@@ -10,7 +10,7 @@ import shutil
 
 import os
 import sys
-root_folder = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
+from multievolve.runtime_paths import get_cache_root, validate_cache_component
 
 from multievolve.utils.other_utils import aa_dict_3to1
 from multievolve.utils.data_utils import find_mutation_positions_multithreaded, MutationFormat
@@ -51,6 +51,9 @@ class BaseSplitter(ABC):
         - **kwargs: Additional keyword arguments.
         """
 
+        validate_cache_component(name)
+        validate_cache_component(type)
+        root_folder = get_cache_root()
         self.wt_seq_lens = []
         self.wt_seqs = []
         if isinstance(wt_file, str):
